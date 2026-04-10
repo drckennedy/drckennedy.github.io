@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Responsible AI Operations Training Simulator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0f172a;font-family:system-ui,sans-serif;color:#e2e8f0;}
+  input{font-family:system-ui,sans-serif;}
+  button{font-family:system-ui,sans-serif;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-track{background:#0f172a;}
+  ::-webkit-scrollbar-thumb{background:#334155;border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useMemo}=React;
+
+const S=[
+  {id:1,title:"EOQ Reorder Calculation – Inconel 718 & Titanium Alloys",category:"Procurement",icon:"📦",recurring:true,desc:"Monthly reorder calculations for 47 raw materials including Inconel 718, titanium alloys, and carbon composites. Inputs are fixed formulas with stable demand data pulled directly from our ERP system. Runs daily.",complexity:"Low",volume:"High (47 materials, daily runs)",safety:"None",context:"Pure formula-based calculation. EOQ = √(2DS/H). Data is structured, deterministic, no ambiguity.",rec:"automation",insight:"Basic automation is ideal here — this is textbook EOQ math with structured inputs. Using an AI Agent wastes token budget and generates unnecessary energy and water costs for compute a spreadsheet formula handles perfectly. Human time is far too valuable for repetitive arithmetic.",costs:{ai:{token:0.42,energy:0.038,water:1.90,capital:120,labor:0,speed:2,err:2,job:-2,qual:92},automation:{token:0,energy:0.002,water:0.05,capital:800,labor:0,speed:0.5,err:1,job:-1,qual:99},augmented:{token:0.20,energy:0.018,water:0.75,capital:400,labor:10,speed:3,err:1.5,job:1,qual:97},human:{token:0,energy:0,water:0,capital:0,labor:68,speed:45,err:3,job:3,qual:95}}},
+  {id:2,title:"Kanban Work Order Status Updates – Assembly Line 3",category:"Workflow",icon:"📋",recurring:true,desc:"Workers on Assembly Line 3 have completed 12 work orders. Each completion must be logged in our MES, the Kanban card moved to 'Done', and the downstream queue triggered automatically.",complexity:"Low",volume:"Medium (12 updates, multiple times daily)",safety:"None",context:"Pure system state transitions triggered by completion events. If/then logic only.",rec:"automation",insight:"Event-triggered rule-based automation handles this perfectly. An AI Agent is gross overkill — paying tokens for glorified button clicks. This pattern has been automatable since the 1980s.",costs:{ai:{token:0.28,energy:0.025,water:1.20,capital:80,labor:0,speed:1,err:1,job:-2,qual:94},automation:{token:0,energy:0.001,water:0.02,capital:400,labor:0,speed:0.1,err:0.5,job:-1,qual:99},augmented:{token:0.15,energy:0.012,water:0.50,capital:200,labor:5,speed:2,err:0.8,job:1,qual:97},human:{token:0,energy:0,water:0,capital:0,labor:32,speed:8,err:4,job:3,qual:91}}},
+  {id:3,title:"Turbine Blade Post-Machining Inspection – QC Gate 4",category:"Quality Control",icon:"🔍",recurring:true,desc:"Post-machining inspection of turbine blades for micro-cracks, surface finish defects, and dimensional tolerances. Each batch is approximately 200 blades. Results feed into flight certification records that must comply with AS9100 and FAA Part 21.",complexity:"High",volume:"Medium (200 blades/batch, 3 batches/week)",safety:"Critical — flight safety",context:"Defects can be subtle. Regulatory sign-off legally requires a certified inspector. AI vision can assist as a screening layer but cannot replace human sign-off on flight-critical parts.",rec:"human",insight:"Flight-critical inspection requires certified human inspectors — full stop. AS9100 and FAA regulations mandate human sign-off. Automating final judgment here creates catastrophic liability.",costs:{ai:{token:2.80,energy:0.22,water:11.0,capital:45000,labor:0,speed:25,err:6,job:-2,qual:79},automation:{token:0,energy:0.18,water:1.0,capital:120000,labor:0,speed:20,err:8,job:-1,qual:72},augmented:{token:1.80,energy:0.16,water:8.0,capital:35000,labor:160,speed:100,err:1.8,job:1,qual:96},human:{token:0,energy:0,water:0,capital:0,labor:280,speed:180,err:2,job:3,qual:97}}},
+  {id:4,title:"Supplier Contract Negotiation – Titanium Vendor Price Dispute",category:"Procurement",icon:"🤝",recurring:false,desc:"Our primary titanium supplier is requesting a 14% price increase. We need to negotiate terms for our 3-year supply agreement covering $2.4M annually. This relationship spans 11 years.",complexity:"High",volume:"Low (one-time, high stakes)",safety:"Low",context:"Requires relationship management, strategic trade-offs, legal nuance, real-time reading of counterparty signals, and trust built over years.",rec:"human",insight:"AI can prep talking points, but the negotiation itself demands human relationship intelligence and accountability. Eleven years of relationship equity cannot be automated.",costs:{ai:{token:3.50,energy:0.31,water:15.5,capital:200,labor:0,speed:40,err:15,job:-2,qual:58},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:5},augmented:{token:2.00,energy:0.18,water:9.0,capital:300,labor:450,speed:420,err:7,job:1,qual:82},human:{token:0,energy:0,water:0,capital:0,labor:640,speed:480,err:5,job:3,qual:92}}},
+  {id:5,title:"Weld Anomaly Detection – Combustion Chamber Ultrasonic Data",category:"Quality Control",icon:"📡",recurring:true,desc:"Real-time ultrasonic inspection of combustion chamber welds generates approximately 850,000 data points per shift. We need to flag anomalies for human engineer review.",complexity:"Medium",volume:"Very High (850K data points/shift)",safety:"High",context:"AI as a screening and triage layer — NOT as final decision maker. Human engineers review all flagged anomalies.",rec:"augmented",insight:"Textbook Augmented Human: AI handles pattern recognition at massive scale, while engineers make every final call. Pure AI without human oversight creates unacceptable liability on flight-critical hardware.",costs:{ai:{token:8.40,energy:0.85,water:42.5,capital:15000,labor:0,speed:8,err:6,job:-2,qual:83},automation:{token:0,energy:0.12,water:0.8,capital:80000,labor:85,speed:10,err:12,job:-1,qual:78},augmented:{token:6.00,energy:0.60,water:30.0,capital:12000,labor:55,speed:9,err:1.5,job:1,qual:98},human:{token:0,energy:0,water:0,capital:0,labor:1200,speed:720,err:18,job:3,qual:62}}},
+  {id:6,title:"AS9100 Monthly Quality Management Report",category:"Compliance",icon:"📄",recurring:true,desc:"Monthly AS9100 quality management report due to our certification body. Data is pulled from our QMS, formatted per a fixed template, and reviewed and signed by the Quality Manager before submission.",complexity:"Medium",volume:"Low (monthly, structured template)",safety:"Low",context:"Structured data in → structured formatted output. Standard template exists. Human sign-off required regardless of generation method.",rec:"automation",insight:"A well-built report automation template beats AI at a fraction of the cost. The Quality Manager must review and sign regardless, so the generation step should be as cheap and reliable as possible.",costs:{ai:{token:1.85,energy:0.16,water:8.2,capital:500,labor:45,speed:15,err:4,job:-2,qual:88},automation:{token:0,energy:0.003,water:0.1,capital:2500,labor:45,speed:8,err:2,job:-1,qual:94},augmented:{token:1.20,energy:0.10,water:5.0,capital:800,labor:35,speed:12,err:2,job:1,qual:93},human:{token:0,energy:0,water:0,capital:0,labor:320,speed:240,err:5,job:3,qual:90}}},
+  {id:7,title:"Engine Hot-Fire Test Failure Root Cause Analysis",category:"Engineering",icon:"🔥",recurring:false,desc:"Hot-fire test #47 produced anomalous chamber pressure readings followed by a turbopump stall at T+4.2s. We need formal root cause analysis before the program can continue. The test stand is currently down.",complexity:"Very High",volume:"Low (one incident, complex)",safety:"Critical",context:"Requires multi-disciplinary engineering expertise, physical intuition, hypothesis generation, and personal accountability.",rec:"human",insight:"RCA of a safety-critical failure demands your best credentialed engineers. No AI system can be named as the responsible engineer on a failure investigation.",costs:{ai:{token:12.5,energy:1.10,water:55.0,capital:800,labor:0,speed:120,err:22,job:-2,qual:61},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:3},augmented:{token:9.0,energy:0.80,water:40.0,capital:1000,labor:2400,speed:2400,err:5,job:1,qual:95},human:{token:0,energy:0,water:0,capital:0,labor:3200,speed:2880,err:8,job:3,qual:94}}},
+  {id:8,title:"Inventory Reorder Point Alerts – 312 Tracked Components",category:"Inventory",icon:"🔔",recurring:true,desc:"When inventory of any of our 312 tracked components drops to its reorder point, we need to automatically trigger a purchase request and alert the procurement team.",complexity:"Low",volume:"High (312 items, continuous monitoring)",safety:"None",context:"Pure threshold comparison: if stock ≤ reorder point, fire alert and create PR.",rec:"automation",insight:"Textbook automation — this is literally just an if-statement running continuously. Using AI wastes token budget, energy, and water for absolutely zero added value.",costs:{ai:{token:1.20,energy:0.10,water:5.1,capital:300,labor:0,speed:1,err:1,job:-2,qual:96},automation:{token:0,energy:0.001,water:0.02,capital:600,labor:0,speed:0.1,err:0.2,job:-1,qual:99.5},augmented:{token:0.70,energy:0.05,water:2.5,capital:400,labor:10,speed:1,err:0.5,job:1,qual:99},human:{token:0,energy:0,water:0,capital:0,labor:48,speed:30,err:6,job:3,qual:88}}},
+  {id:9,title:"EPQ Optimization – 18 Injector Plate Production Variants",category:"Production Planning",icon:"⚙️",recurring:true,desc:"Determine optimal production run quantities for 18 injector plate variants, balancing setup costs ($4,200/run), holding costs, and demand variability across three rocket programs.",complexity:"Medium",volume:"Medium (18 variants, monthly planning)",safety:"None",context:"EPQ formula with demand variability. More complex than EOQ but still solvable via operations research algorithms.",rec:"automation",insight:"EPQ with demand variability is still well within automation's reach using standard OR solvers. AI adds negligible value over a properly configured solver at orders of magnitude higher environmental cost.",costs:{ai:{token:0.95,energy:0.08,water:4.2,capital:400,labor:30,speed:10,err:3,job:-2,qual:90},automation:{token:0,energy:0.005,water:0.15,capital:3500,labor:30,speed:3,err:1.5,job:-1,qual:96},augmented:{token:0.55,energy:0.05,water:2.0,capital:2000,labor:20,speed:5,err:1,job:1,qual:97},human:{token:0,energy:0,water:0,capital:0,labor:240,speed:180,err:7,job:3,qual:85}}},
+  {id:10,title:"Workplace Safety Incident Documentation – Machinist Laceration",category:"Safety & HR",icon:"🦺",recurring:false,desc:"A machinist sustained a laceration requiring medical treatment. Per OSHA 29 CFR 1904, a formal incident report must be completed, root cause identified, corrective actions documented, and the injured worker personally checked on.",complexity:"Medium",volume:"Low (incident-based)",safety:"High (OSHA compliance, worker welfare)",context:"Requires empathy, accurate witness accounts, legal accuracy, and genuine organizational care for the injured worker.",rec:"human",insight:"A human was hurt. The investigation must be human-led for legal, ethical, and cultural reasons. Using AI signals to your workforce that their safety is an automation problem.",costs:{ai:{token:1.60,energy:0.14,water:7.1,capital:200,labor:0,speed:30,err:12,job:-2,qual:62},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:5},augmented:{token:1.00,energy:0.09,water:4.5,capital:200,labor:180,speed:90,err:5,job:1,qual:84},human:{token:0,energy:0,water:0,capital:0,labor:280,speed:120,err:4,job:3,qual:95}}},
+  {id:11,title:"Predictive Maintenance – CNC Machining Centers",category:"Maintenance",icon:"🔧",recurring:true,desc:"Vibration, temperature, and spindle load data streams continuously from 8 CNC machining centers. Goal: identify machines likely to fail within 72 hours. One unplanned downtime event costs $50K–$200K.",complexity:"High",volume:"Very High (continuous multi-sensor streams)",safety:"Medium",context:"Pattern recognition on high-frequency time-series data at scale. AI predicts; maintenance teams schedule and act.",rec:"augmented",insight:"One prevented downtime event pays for the system for a full year. Augmented is the right model: AI as the signal processor, human as the maintenance authority.",costs:{ai:{token:6.20,energy:0.55,water:27.5,capital:25000,labor:0,speed:5,err:10,job:-2,qual:84},automation:{token:0,energy:0.08,water:0.5,capital:60000,labor:40,speed:5,err:25,job:-1,qual:68},augmented:{token:4.80,energy:0.42,water:21.0,capital:20000,labor:25,speed:5,err:4,job:1,qual:95},human:{token:0,energy:0,water:0,capital:0,labor:960,speed:720,err:30,job:3,qual:55}}},
+  {id:12,title:"Vendor Invoice 3-Way Match Reconciliation",category:"Finance",icon:"💳",recurring:true,desc:"Match 340 vendor invoices against purchase orders and goods receipt records. Flag discrepancies for AP team review. Standard 3-way match: Invoice = PO = Receipt. Monthly close cycle.",complexity:"Low",volume:"High (340 invoices, monthly)",safety:"None",context:"Structured data, deterministic rules. Three-way match has been a standard automation use case since the 1990s.",rec:"automation",insight:"3-way match reconciliation is a canonical automation use case. Paying AI tokens to compare numbers on invoices against numbers in a database is pure waste.",costs:{ai:{token:2.10,energy:0.19,water:9.4,capital:500,labor:60,speed:25,err:2,job:-2,qual:94},automation:{token:0,energy:0.004,water:0.12,capital:1200,labor:60,speed:5,err:0.5,job:-1,qual:99},augmented:{token:1.40,energy:0.12,water:6.0,capital:600,labor:30,speed:12,err:0.8,job:1,qual:98},human:{token:0,energy:0,water:0,capital:0,labor:680,speed:420,err:4,job:3,qual:93}}},
+  {id:13,title:"Production Schedule Re-sequencing After Supply Disruption",category:"Production Planning",icon:"📅",recurring:false,desc:"A fastener supplier failure has cascaded across 3 production lines. 47 work orders need re-sequencing considering machine capacity, labor, lead times, and delivery commitments to 4 customers.",complexity:"Very High",volume:"Medium (47 orders, time-sensitive)",safety:"Low",context:"Combinatorial optimization with real-world soft constraints, customer relationship implications, and incomplete information.",rec:"augmented",insight:"AI can model dozens of re-sequencing scenarios in minutes. But the final decision must be owned by a human who knows which customers can flex and which contracts have penalty clauses.",costs:{ai:{token:5.80,energy:0.52,water:25.8,capital:1000,labor:0,speed:60,err:12,job:-2,qual:78},automation:{token:0,energy:0.04,water:0.3,capital:15000,labor:240,speed:120,err:18,job:-1,qual:70},augmented:{token:4.20,energy:0.38,water:19.0,capital:800,labor:130,speed:80,err:5,job:1,qual:91},human:{token:0,energy:0,water:0,capital:0,labor:1280,speed:1440,err:15,job:3,qual:78}}},
+  {id:14,title:"New Hire Onboarding – Manufacturing Technician",category:"HR & Training",icon:"👷",recurring:false,desc:"A new precision machinist joins Assembly Cell 7. They need: safety orientation, system access provisioning for 6 platforms, equipment qualification scheduling, mentor assignment, and 30/60/90-day milestone tracking.",complexity:"Medium",volume:"Low (per hire)",safety:"Medium (safety training compliance)",context:"Mix of provisionable process steps and human elements — safety culture transfer, mentorship, belonging.",rec:"automation",insight:"Automate the process steps while humans own the relationship elements. Your new hire deserves a human champion, not a chatbot.",costs:{ai:{token:1.40,energy:0.12,water:6.3,capital:300,labor:120,speed:60,err:5,job:-2,qual:82},automation:{token:0,energy:0.003,water:0.08,capital:1800,labor:120,speed:30,err:3,job:-1,qual:90},augmented:{token:0.80,energy:0.07,water:3.5,capital:500,labor:100,speed:40,err:3,job:1,qual:91},human:{token:0,energy:0,water:0,capital:0,labor:640,speed:480,err:6,job:3,qual:88}}},
+  {id:15,title:"ITAR Regulatory Change Impact Assessment",category:"Compliance",icon:"⚖️",recurring:false,desc:"New ITAR amendments affecting Category XV have been published. We must assess impact on 3 active international programs, existing export licenses, and our supply chain. The compliance window is 30 days.",complexity:"Very High",volume:"Low (one-time, existential risk)",safety:"Critical (federal legal exposure)",context:"Legal interpretation of federal regulations with national security implications. ITAR violations carry criminal penalties.",rec:"human",insight:"ITAR violations are federal crimes. AI cannot provide legal advice, cannot be held accountable, and cannot appear before a federal regulator. Your legal counsel and export compliance officers must lead this.",costs:{ai:{token:8.90,energy:0.78,water:39.2,capital:1500,labor:0,speed:120,err:25,job:-2,qual:52},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:2},augmented:{token:5.50,energy:0.48,water:24.0,capital:1200,labor:3800,speed:3800,err:4,job:1,qual:94},human:{token:0,energy:0,water:0,capital:0,labor:4800,speed:4320,err:5,job:3,qual:95}}},
+  {id:"A1",title:"Hot-Fire Test Real-Time Safety Abort Monitoring",category:"Engineering",icon:"🛑",recurring:true,desc:"During hot-fire testing, 54 sensors sample at 10,000 Hz. If any parameter crosses a safety threshold, the system must trigger an emergency abort within 50 milliseconds — before a hard-start or over-pressure event can propagate.",complexity:"Very High",volume:"Very High (540K samples/second per test)",safety:"Critical — test stand and hardware safety",context:"Human reaction time is 200–400ms minimum — four to eight times too slow to intervene before a dangerous transient propagates. The abort logic must be autonomous.",rec:"ai",insight:"This is one of the clearest cases where AI Agent is not just better — it is the only responsible choice. Human reaction time is physically incapable of meeting the 50ms abort window. The AI monitors all 54 channels simultaneously and triggers abort faster than any human can perceive the event.",costs:{ai:{token:4.20,energy:0.38,water:19.0,capital:85000,labor:40,speed:0.05,err:0.5,job:-2,qual:99},automation:{token:0,energy:0.15,water:1.0,capital:120000,labor:40,speed:0.05,err:3,job:-1,qual:88},augmented:{token:4.20,energy:0.38,water:19.0,capital:85000,labor:200,speed:280,err:8,job:1,qual:61},human:{token:0,energy:0,water:0,capital:0,labor:480,speed:300,err:12,job:3,qual:42}}},
+  {id:"A2",title:"Production Equipment Log Classification & Auto-Routing",category:"Maintenance",icon:"📊",recurring:true,desc:"Our factory network generates approximately 52,000 system log entries per day from 8 CNC machining centers, 3 assembly robots, the MES, and facility systems. Each entry needs to be classified and routed to the appropriate team queue.",complexity:"Medium",volume:"Very High (52,000 entries/day)",safety:"Medium",context:"The classification logic is pattern-based but far too varied for static automation rules. Human review of every entry is impossible. AI trained on historical fault data classifies the full volume in real time.",rec:"ai",insight:"At 52,000 entries per day, human review is not practical. Static rules miss the contextual patterns that precede failures. AI Agent processes the full volume in real time and surfaces rare failure signatures that sampling would miss.",costs:{ai:{token:5.80,energy:0.52,water:26.0,capital:18000,labor:20,speed:1,err:3,job:-2,qual:95},automation:{token:0,energy:0.06,water:0.4,capital:35000,labor:20,speed:1,err:22,job:-1,qual:63},augmented:{token:5.80,energy:0.52,water:26.0,capital:18000,labor:960,speed:480,err:4,job:1,qual:91},human:{token:0,energy:0,water:0,capital:0,labor:4800,speed:2880,err:14,job:3,qual:55}}},
+  {id:"A3",title:"Multi-Source Demand Signal Aggregation – Materials Planning",category:"Production Planning",icon:"📡",recurring:true,desc:"Our 90-day rolling demand forecast depends on continuous aggregation of 220+ data sources: commodity spot prices, launch manifests, competitor announcements, weather at supplier locations, freight indices, and geopolitical risk signals. The system updates hundreds of times per day.",complexity:"High",volume:"Very High (220+ sources, continuous updates)",safety:"Low",context:"The value is speed and comprehensiveness — aggregating and correlating 220 sources in real time. Planners review the weekly summary and make manual overrides on major shifts.",rec:"ai",insight:"The Augmented Human model breaks down here because there are hundreds of micro-updates per day. AI continuously ingests, weights, and correlates signals faster than any human team could. Planners retain full override authority on major plan changes.",costs:{ai:{token:7.20,energy:0.65,water:32.5,capital:22000,labor:30,speed:1,err:4,job:-2,qual:94},automation:{token:0,energy:0.08,water:0.5,capital:45000,labor:30,speed:5,err:28,job:-1,qual:58},augmented:{token:7.20,energy:0.65,water:32.5,capital:22000,labor:1600,speed:240,err:5,job:1,qual:89},human:{token:0,energy:0,water:0,capital:0,labor:3200,speed:2880,err:18,job:3,qual:52}}},
+  {id:16,title:"Product Roadmap Prioritization – Next-Gen Engine Variant",category:"Product Management",icon:"🗺️",recurring:false,desc:"Four active customer programs have submitted conflicting feature requests for our next-gen engine variant. We must publish a prioritized roadmap within 3 weeks.",complexity:"High",volume:"Low (one-time, strategic)",safety:"Low",context:"Feature prioritization involves customer relationship management, technical feasibility trade-offs, strategic market positioning, and engineering resource constraints.",rec:"augmented",insight:"AI can rapidly score and rank requirements across weighted criteria — surfacing trade-offs that would take a human PM weeks to model. But the final roadmap decision involves customer promises and engineering team commitment that only a human PM can own.",costs:{ai:{token:4.20,energy:0.38,water:19.0,capital:600,labor:0,speed:90,err:14,job:-2,qual:70},automation:{token:0,energy:0.02,water:0.2,capital:8000,labor:0,speed:120,err:22,job:-1,qual:55},augmented:{token:3.10,energy:0.28,water:14.0,capital:500,labor:480,speed:480,err:5,job:1,qual:92},human:{token:0,energy:0,water:0,capital:0,labor:1600,speed:2880,err:8,job:3,qual:88}}},
+  {id:17,title:"Voice of Customer Analysis – Engine Maintenance Field Reports",category:"Product Management",icon:"📣",recurring:true,desc:"We have received 2,400 field maintenance reports, customer satisfaction surveys, and support tickets over the past 6 months. We need to identify top recurring pain points and generate actionable product improvement recommendations.",complexity:"Medium",volume:"High (2,400 reports)",safety:"Low",context:"Large-volume unstructured text analysis with structured classification and synthesis. Human review of final recommendations is essential.",rec:"augmented",insight:"AI can process 2,400 unstructured reports in minutes — clustering themes, ranking by frequency and severity. But the product manager must critically review the synthesized findings and own the recommendations presented to engineering.",costs:{ai:{token:7.80,energy:0.70,water:35.0,capital:800,labor:0,speed:30,err:10,job:-2,qual:80},automation:{token:0,energy:0.04,water:0.3,capital:5000,labor:0,speed:60,err:28,job:-1,qual:52},augmented:{token:5.50,energy:0.50,water:25.0,capital:600,labor:240,speed:120,err:4,job:1,qual:94},human:{token:0,energy:0,water:0,capital:0,labor:2400,speed:4320,err:12,job:3,qual:78}}},
+  {id:18,title:"Competitive Intelligence – Market Positioning Assessment",category:"Product Management",icon:"🔭",recurring:true,desc:"Six competitor engine programs have had significant public activity this quarter — patent filings, conference presentations, test stand construction, and customer announcements. We need a structured competitive landscape assessment.",complexity:"Medium",volume:"High (multi-source, ongoing)",safety:"Low",context:"Competitive intelligence requires aggregating and synthesizing large volumes of publicly available information. Strategic interpretation requires experienced market judgment.",rec:"augmented",insight:"AI excels at aggregating and synthesizing large volumes of public information across patents, publications, and news. However, the strategic interpretation — what this means for our pricing and positioning — requires experienced product leadership.",costs:{ai:{token:6.50,energy:0.58,water:29.0,capital:700,labor:0,speed:120,err:12,job:-2,qual:74},automation:{token:0,energy:0.03,water:0.2,capital:4000,labor:0,speed:180,err:35,job:-1,qual:40},augmented:{token:4.80,energy:0.43,water:21.5,capital:500,labor:320,speed:240,err:5,job:1,qual:93},human:{token:0,energy:0,water:0,capital:0,labor:1600,speed:2880,err:10,job:3,qual:82}}},
+  {id:19,title:"Go/No-Go Decision – Commercial Launch of Vega-7 Engine Variant",category:"Product Management",icon:"🚦",recurring:false,desc:"Our Vega-7 engine variant has completed its internal qualification program. We must make the formal go/no-go decision considering: remaining certification milestones, production readiness, customer commitments, supply chain status, and competitive timing. Three customers are waiting.",complexity:"Very High",volume:"Low (one-time, strategic)",safety:"High — commercial and programmatic risk",context:"A go/no-go launch decision involves cross-functional judgment, legal exposure, customer relationship management, and executive accountability.",rec:"human",insight:"This decision belongs entirely to senior product and program leadership. The go/no-go involves weighing incomplete information, managing customer expectations, and assuming accountability for a commitment that affects multiple programs. This is the definition of a judgment call that cannot be delegated.",costs:{ai:{token:9.20,energy:0.82,water:41.0,capital:1500,labor:0,speed:120,err:20,job:-2,qual:60},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:3},augmented:{token:6.80,energy:0.60,water:30.0,capital:1200,labor:1600,speed:1440,err:6,job:1,qual:88},human:{token:0,energy:0,water:0,capital:0,labor:2400,speed:2880,err:5,job:3,qual:95}}},
+  {id:20,title:"Product Requirements Document – Next-Gen Turbopump Variant",category:"Product Management",icon:"📝",recurring:false,desc:"Engineering has completed a feasibility study for a next-generation turbopump targeting a 22% efficiency improvement. We need a formal PRD capturing customer performance needs, interface requirements, certification obligations, manufacturing constraints, and success criteria.",complexity:"High",volume:"Low (one document, high impact)",safety:"Medium — basis for flight hardware design",context:"A PRD for flight hardware is a legally significant, configuration-controlled document that forms the contractual basis for design work.",rec:"human",insight:"The PRD for flight hardware must be written and owned by qualified product managers and systems engineers who can be held accountable. An AI-authored PRD that misses a critical requirement could propagate undetected through the entire design.",costs:{ai:{token:5.80,energy:0.52,water:26.0,capital:800,labor:0,speed:90,err:18,job:-2,qual:65},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:2},augmented:{token:3.80,energy:0.34,water:17.0,capital:600,labor:960,speed:960,err:5,job:1,qual:90},human:{token:0,energy:0,water:0,capital:0,labor:1920,speed:2880,err:4,job:3,qual:96}}}
+];
+
+const EVENTS=[
+  {id:"E1",title:"Supplier Facility Shutdown – Storm-Forced Closure",category:"Disruption Event",icon:"🌪️",recurring:false,isEvent:true,urgency:"CRITICAL",timeframe:"2–3 months",desc:"A severe storm has forced closure of our primary turbopump injector plate supplier in Louisiana. They supply a sole-source forged titanium component with a 14-week lead time. We have approximately 6 weeks of buffer stock remaining.",complexity:"Very High",volume:"Low (one-time, time-critical)",safety:"High — production stoppage risk",context:"Supplier qualification involves engineering review of drawings, material certifications, first article inspection, and contractual onboarding. Speed is critical but so is quality assurance on flight hardware.",rec:"augmented",insight:"AI can rapidly scan global supplier databases, cross-reference certifications, and score candidates against qualification criteria — compressing weeks of research into hours. But the final qualification decision and contract negotiation must be human-led. Flight hardware supplier qualification carries safety and legal accountability that cannot be delegated.",costs:{ai:{token:9.50,energy:0.88,water:44.0,capital:2000,labor:0,speed:180,err:18,job:-2,qual:62},automation:{token:0,energy:0.05,water:0.4,capital:5000,labor:0,speed:240,err:30,job:-1,qual:45},augmented:{token:7.20,energy:0.65,water:32.5,capital:1800,labor:1600,speed:480,err:6,job:1,qual:90},human:{token:0,energy:0,water:0,capital:0,labor:3200,speed:1440,err:10,job:3,qual:88}}},
+  {id:"E2",title:"Cybersecurity Breach – Legacy Production Tracking System",category:"Disruption Event",icon:"🔐",recurring:false,isEvent:true,urgency:"CRITICAL",timeframe:"Immediate",desc:"Our legacy MES has been compromised in a ransomware attack. Production is partially halted. We need to contain the breach, assess the damage, restore operations, and determine if any ITAR-controlled technical data was accessed.",complexity:"Very High",volume:"Low (one incident, existential risk)",safety:"Critical — ITAR exposure, operational shutdown",context:"Ransomware on a defense manufacturing MES is a multi-domain crisis: IT forensics, ITAR regulatory notification, production continuity, insurance compliance, and workforce communication.",rec:"human",insight:"This is a human-led crisis response — full stop. Cybersecurity incident response on ITAR-covered systems requires certified forensic experts, legal counsel, and executive leadership. The command decisions, regulatory notifications, and stakeholder communications must be owned by humans with legal accountability.",costs:{ai:{token:14.0,energy:1.30,water:65.0,capital:2500,labor:0,speed:240,err:28,job:-2,qual:48},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:3},augmented:{token:10.0,energy:0.92,water:46.0,capital:2000,labor:3600,speed:2880,err:8,job:1,qual:88},human:{token:0,energy:0,water:0,capital:0,labor:5600,speed:4320,err:6,job:3,qual:94}}},
+  {id:"E3",title:"Critical Test Stand Failure – Altitude Simulation Chamber",category:"Disruption Event",icon:"💥",recurring:false,isEvent:true,urgency:"HIGH",timeframe:"4–8 weeks",desc:"Our altitude simulation test chamber has suffered a catastrophic vacuum pump seal failure. Two engines awaiting testing cannot ship. Options: repair in-place, source replacement pump (16-week OEM lead), find third-party test facility, or pursue engineering disposition to waive the altitude test.",complexity:"Very High",volume:"Low (one incident, high cost)",safety:"Critical — flight hardware certification",context:"This decision involves engineering trade-offs, contractual obligations, financial implications ($2M+ in delayed deliveries), and regulatory coordination.",rec:"augmented",insight:"AI can rapidly model cost and schedule scenarios across the four options. But the final disposition decision involves engineering accountability, regulatory judgment, and customer relationship factors that require experienced humans. Your Chief Engineer must own the outcome.",costs:{ai:{token:11.0,energy:1.02,water:51.0,capital:3000,labor:0,speed:180,err:20,job:-2,qual:65},automation:{token:0,energy:0,water:0,capital:0,labor:0,speed:0,err:99,job:-1,qual:4},augmented:{token:8.50,energy:0.76,water:38.0,capital:2500,labor:2400,speed:1440,err:5,job:1,qual:93},human:{token:0,energy:0,water:0,capital:0,labor:4000,speed:2880,err:9,job:3,qual:90}}},
+  {id:"E4",title:"Strategic Opportunity – Customer Orders 10,000 Engines",category:"Disruption Event",icon:"🚀",recurring:false,isEvent:true,urgency:"HIGH",timeframe:"Strategic (12–24 month ramp)",desc:"A major launch vehicle integrator has issued a Letter of Intent for 10,000 engines over 5 years — roughly 8× our current production capacity. Accepting means factory expansion, a workforce hiring program, supplier base scaling, and complete re-architecture of our production flow and quality systems.",complexity:"Very High",volume:"Very High (systemic transformation)",safety:"Medium — quality systems under scaling stress",context:"A company-defining strategic decision touching every operational domain simultaneously.",rec:"augmented",insight:"AI can model dozens of capacity ramp scenarios, supply chain stress-tests, and cash flow projections simultaneously — giving leadership a comprehensive picture in days instead of months. But the strategic commitments, board-level decisions, and customer negotiations must be owned entirely by your senior leadership team.",costs:{ai:{token:18.0,energy:1.65,water:82.5,capital:5000,labor:0,speed:480,err:20,job:-2,qual:66},automation:{token:0,energy:0.10,water:0.8,capital:10000,labor:0,speed:720,err:35,job:-1,qual:42},augmented:{token:14.0,energy:1.25,water:62.5,capital:4000,labor:4800,speed:2880,err:6,job:1,qual:91},human:{token:0,energy:0,water:0,capital:0,labor:8000,speed:4320,err:12,job:3,qual:86}}}
+];
+
+const OPTS={ai:{label:"AI Agent",icon:"🤖",color:"#818cf8"},automation:{label:"Basic Automation",icon:"⚡",color:"#34d399"},augmented:{label:"Augmented Human",icon:"🧠",color:"#f472b6"},human:{label:"Human Worker",icon:"👤",color:"#fbbf24"}};
+const OKEYS=["ai","automation","augmented","human"];
+const MKEYS=["token","energy","water","capital","labor","speed","err","job","qual"];
+const MLABELS={token:"Token Cost ($)",energy:"Energy (kWh)",water:"Water (L)",capital:"Capital/Setup ($)",labor:"Labor Cost ($)",speed:"Time to Complete",err:"Error Rate (%)",job:"Job Impact",qual:"Output Quality (%)"};
+const GOODLOW=new Set(["token","energy","water","capital","labor","speed","err"]);
+
+function buildDeck(){
+  const picked=[...S].sort(()=>Math.random()-0.5).slice(0,15);
+  const evs=[...EVENTS].sort(()=>Math.random()-0.5).slice(0,2);
+  const pos=[];
+  while(pos.length<2){const p=2+Math.floor(Math.random()*10);if(!pos.includes(p)&&!pos.includes(p-1)&&!pos.includes(p+1))pos.push(p);}
+  pos.sort((a,b)=>a-b);
+  const deck=[...picked];
+  deck.splice(pos[0],0,evs[0]);
+  deck.splice(pos[1]+1,0,evs[1]);
+  return deck;
+}
+
+function fmt(k,v){
+  if(k==="token"||k==="capital"||k==="labor") return v===0?"$0":`$${v%1===0?v:v.toFixed(2)}`;
+  if(k==="energy") return `${v.toFixed(3)} kWh`;
+  if(k==="water") return `${v.toFixed(1)} L`;
+  if(k==="speed") return v===0?"N/A":v<60?`${v}m`:`${(v/60).toFixed(1)}h`;
+  if(k==="err") return v===99?"N/A":`${v}%`;
+  if(k==="job") return v>0?`+${v}▲`:`${v}▼`;
+  if(k==="qual") return v<10?"Unsuitable":`${v}%`;
+  return `${v}`;
+}
+function getBest(sc,k){
+  const vals=Object.fromEntries(OKEYS.map(o=>[o,sc.costs[o][k]]));
+  return GOODLOW.has(k)?OKEYS.reduce((a,b)=>vals[a]<=vals[b]?a:b):OKEYS.reduce((a,b)=>vals[a]>=vals[b]?a:b);
+}
+function computeCumulative(decisions,metric){
+  const result=[],recurAdd=[];let running=0;
+  decisions.forEach(d=>{recurAdd.forEach(c=>{running+=c;});running+=d.costs[metric];result.push(running);
+    if(d.recurring&&(d.choice==="ai"||d.choice==="automation"))recurAdd.push(d.costs[metric]);});
+  return result;
+}
+
+function generateCertDataURL(score,ok,n,userName){
+  const c=document.createElement('canvas');c.width=1100;c.height=780;
+  const x=c.getContext('2d');
+  const gold='#c9a84c',lg='#e8d48a',cream='#fdf6e3';
+  x.textAlign='center';
+  const bg=x.createLinearGradient(0,0,1100,780);bg.addColorStop(0,'#0d1b2e');bg.addColorStop(1,'#1a3354');
+  x.fillStyle=bg;x.fillRect(0,0,1100,780);
+  x.strokeStyle=gold;x.lineWidth=9;x.strokeRect(16,16,1068,748);
+  x.strokeStyle=lg;x.lineWidth=2;x.strokeRect(30,30,1040,720);
+  [[55,55],[1045,55],[55,725],[1045,725]].forEach(([cx,cy])=>{
+    [18,11].forEach(r=>{x.strokeStyle=gold;x.lineWidth=1.5;x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.stroke();});
+    x.fillStyle=gold;x.beginPath();x.arc(cx,cy,4,0,Math.PI*2);x.fill();
+  });
+  function star(cx,cy,r,fill){x.beginPath();for(let i=0;i<5;i++){const a=(i*4*Math.PI/5)-Math.PI/2,b=(i*4*Math.PI/5+2*Math.PI/5)-Math.PI/2;i===0?x.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):x.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));x.lineTo(cx+r*.4*Math.cos(b),cy+r*.4*Math.sin(b));}x.closePath();x.fillStyle=fill;x.fill();}
+  star(550,68,22,lg);star(508,88,10,gold+'bb');star(592,88,10,gold+'bb');
+  [375,725].forEach(cx=>star(cx,88,12,gold));
+  x.font='bold 13px "Courier New",monospace';x.fillStyle=lg;x.fillText('APEX PROPULSION SYSTEMS',550,128);
+  x.strokeStyle=gold;x.lineWidth=1;x.beginPath();x.moveTo(200,143);x.lineTo(900,143);x.stroke();
+  x.font='italic bold 44px Georgia,serif';x.fillStyle=cream;x.fillText('Certificate of Completion',550,210);
+  x.font='15px Georgia,serif';x.fillStyle=lg;x.fillText('This certifies the successful completion of',550,254);
+  x.font='bold 20px Georgia,serif';x.fillStyle=cream;x.fillText('Responsible AI Operations Training — Advanced Manufacturing',550,293);
+  x.strokeStyle=gold+'55';x.lineWidth=1;x.beginPath();x.moveTo(160,315);x.lineTo(940,315);x.stroke();
+  x.font='15px Georgia,serif';x.fillStyle=lg;x.fillText('awarded to',550,345);
+  x.font='italic bold 36px Georgia,serif';x.fillStyle=cream;x.fillText(userName||'Participant',550,390);
+  x.strokeStyle=gold+'44';x.lineWidth=1;x.beginPath();x.moveTo(260,408);x.lineTo(840,408);x.stroke();
+  x.font='14px Georgia,serif';x.fillStyle='#b0bec5';
+  ['For demonstrating proficiency in evaluating AI Agents, Basic Automation,',
+   'Augmented Human workflows, and Human Worker approaches across procurement,',
+   'quality control, production planning, compliance, and operational disruptions.'
+  ].forEach((l,i)=>x.fillText(l,550,438+i*24));
+  const bx=440,by=510,bw=220,bh=76,r=12;
+  x.fillStyle='rgba(201,168,76,0.14)';
+  x.beginPath();x.moveTo(bx+r,by);x.lineTo(bx+bw-r,by);x.arcTo(bx+bw,by,bx+bw,by+r,r);x.lineTo(bx+bw,by+bh-r);x.arcTo(bx+bw,by+bh,bx+bw-r,by+bh,r);x.lineTo(bx+r,by+bh);x.arcTo(bx,by+bh,bx,by+bh-r,r);x.lineTo(bx,by+r);x.arcTo(bx,by,bx+r,by,r);x.closePath();x.fill();
+  x.strokeStyle=gold;x.lineWidth=1.5;
+  x.beginPath();x.moveTo(bx+r,by);x.lineTo(bx+bw-r,by);x.arcTo(bx+bw,by,bx+bw,by+r,r);x.lineTo(bx+bw,by+bh-r);x.arcTo(bx+bw,by+bh,bx+bw-r,by+bh,r);x.lineTo(bx+r,by+bh);x.arcTo(bx,by+bh,bx,by+bh-r,r);x.lineTo(bx,by+r);x.arcTo(bx,by,bx+r,by,r);x.closePath();x.stroke();
+  x.font='bold 38px Georgia,serif';x.fillStyle=lg;x.fillText(`${score}%`,550,563);
+  x.font='bold 11px "Courier New",monospace';x.fillStyle=gold;x.fillText(`${ok} OF ${n} OPTIMAL DECISIONS`,550,585);
+  const ds=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  x.font='13px Georgia,serif';x.fillStyle='#7a8fa6';x.fillText(`Issued: ${ds}`,550,612);
+  x.strokeStyle=gold+'44';x.lineWidth=1;x.beginPath();x.moveTo(160,630);x.lineTo(940,630);x.stroke();
+  x.strokeStyle=gold+'88';x.lineWidth=1;x.beginPath();x.moveTo(190,685);x.lineTo(430,685);x.stroke();
+  x.font='italic bold 28px Georgia,serif';x.fillStyle=lg;x.fillText('Chad Kennedy',310,678);
+  x.font='12px Georgia,serif';x.fillStyle='#607080';x.fillText('Program Director, CTO Office',310,700);
+  x.strokeStyle=gold+'88';x.lineWidth=1;x.beginPath();x.moveTo(670,685);x.lineTo(910,685);x.stroke();
+  x.font='italic bold 28px Georgia,serif';x.fillStyle=lg;x.fillText('Dr. KAI',790,678);
+  x.font='12px Georgia,serif';x.fillStyle='#607080';x.fillText('Quality Assurance Lead',790,700);
+  x.fillStyle='rgba(201,168,76,0.06)';x.fillRect(30,710,1040,40);
+  x.font='10px "Courier New",monospace';x.fillStyle='#415060';
+  x.fillText('CTO Office  ·  Responsible AI Operations Training  ·  Apex Propulsion Systems  ·  CONFIDENTIAL',550,735);
+  return c.toDataURL('image/png');
+}
+
+function ScatterLine({vals,color,w=262,h=40,eventIdxs=[]}) {
+  if(!vals||vals.length===0) return React.createElement('div',{style:{height:h,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#334155'}},'Waiting…');
+  const max=Math.max(...vals,0.001),pL=2,pR=2,pT=4,pB=4,W=w-pL-pR,H=h-pT-pB,n=vals.length;
+  const pts=vals.map((v,i)=>[pL+(n<=1?W/2:(i/(n-1))*W),pT+H*(1-v/max)]);
+  return React.createElement('svg',{width:w,height:h,style:{display:'block',overflow:'visible'}},
+    pts.length>1&&React.createElement('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:color,strokeWidth:1.5,strokeLinejoin:'round'}),
+    ...pts.map((p,i)=>eventIdxs.includes(i)
+      ?React.createElement('polygon',{key:i,points:`${p[0]},${p[1]-4} ${p[0]+3.5},${p[1]+3} ${p[0]-3.5},${p[1]+3}`,fill:'#f97316',stroke:'#0f172a',strokeWidth:1.2})
+      :React.createElement('circle',{key:i,cx:p[0],cy:p[1],r:3,fill:color,stroke:'#0f172a',strokeWidth:1.2})
+    )
+  );
+}
+
+function ScatterFull({vals,cumVals,color,h=90,eventIdxs=[]}) {
+  if(!vals||vals.length===0) return null;
+  const allV=[...vals,...(cumVals||[])],max=Math.max(...allV,0.001);
+  const pL=32,pR=6,pT=6,pB=18,W=560-pL-pR,H=h-pT-pB,n=vals.length;
+  const toX=i=>pL+(n<=1?W/2:(i/(n-1))*W),toY=v=>pT+H*(1-v/max);
+  return React.createElement('svg',{width:560,height:h,style:{display:'block',maxWidth:'100%',overflow:'visible'}},
+    [0,max*.5,max].map((t,i)=>React.createElement('g',{key:i},
+      React.createElement('line',{x1:pL,y1:toY(t),x2:pL+W,y2:toY(t),stroke:'#1e293b',strokeWidth:1}),
+      React.createElement('text',{x:pL-3,y:toY(t)+3,fill:'#475569',fontSize:7,textAnchor:'end'},t===0?'0':t.toFixed(t<1?3:t<10?1:0))
+    )),
+    React.createElement('line',{x1:pL,y1:pT,x2:pL,y2:pT+H,stroke:'#334155',strokeWidth:1}),
+    cumVals&&cumVals.length>1&&React.createElement('polyline',{points:cumVals.map((v,i)=>`${toX(i)},${toY(v)}`).join(' '),fill:'none',stroke:color,strokeWidth:1.5,strokeDasharray:'5,3',opacity:0.4}),
+    ...(cumVals||[]).map((v,i)=>React.createElement('circle',{key:`c${i}`,cx:toX(i),cy:toY(v),r:2.5,fill:color,opacity:0.35})),
+    vals.length>1&&React.createElement('polyline',{points:vals.map((v,i)=>`${toX(i)},${toY(v)}`).join(' '),fill:'none',stroke:color,strokeWidth:2,strokeLinejoin:'round'}),
+    ...vals.map((v,i)=>{
+      const isEv=eventIdxs.includes(i),px=toX(i),py=toY(v);
+      return React.createElement('g',{key:i},
+        isEv?React.createElement('polygon',{points:`${px},${py-5} ${px+4.5},${py+4} ${px-4.5},${py+4}`,fill:'#f97316',stroke:'#0f172a',strokeWidth:1.5})
+            :React.createElement('circle',{cx:px,cy:py,r:4,fill:color,stroke:'#0f172a',strokeWidth:1.5}),
+        React.createElement('text',{x:px,y:pT+H+13,fill:isEv?'#f97316':'#334155',fontSize:7,textAnchor:'middle',fontWeight:isEv?700:400},i+1)
+      );
+    })
+  );
+}
+
+function MiniTrend({decisions,eventIdxs}) {
+  if(decisions.length===0) return React.createElement('div',{style:{padding:'8px 0',fontSize:11,color:'#334155',textAlign:'center'}},'Trends appear after first decision');
+  const metrics=[{key:'energy',label:'Energy (kWh)',color:'#fbbf24'},{key:'water',label:'Water (L)',color:'#60a5fa'},{key:'token',label:'Token Cost ($)',color:'#818cf8'}];
+  return React.createElement('div',null,...metrics.map(m=>{
+    const vals=decisions.map(d=>d.costs[m.key]),last=vals[vals.length-1],prev=vals.length>=2?vals[vals.length-2]:last;
+    const up=last>prev*1.05,dn=last<prev*0.95,tc=up?'#ef4444':dn?'#34d399':'#94a3b8';
+    return React.createElement('div',{key:m.key,style:{marginBottom:14}},
+      React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
+        React.createElement('span',{style:{fontSize:10,color:'#94a3b8'}},m.label),
+        React.createElement('span',{style:{fontSize:11,fontWeight:700,color:tc}},(up?'↑':dn?'↓':'→')+' '+last.toFixed(m.key==='water'?1:3))
+      ),
+      React.createElement(ScatterLine,{vals,color:m.color,w:262,h:38,eventIdxs:eventIdxs.filter(e=>e<vals.length)})
+    );
+  }),React.createElement('div',{style:{fontSize:9,color:'#475569',marginTop:2}},'▲ orange = disruption event'));
+}
+
+function Register({onSubmit}) {
+  const [name,setName]=useState('');
+  const [err,setErr]=useState('');
+  const valid=name.trim().length>1;
+  const go=()=>{if(!name.trim()){setErr('Please enter your full name.');return;}onSubmit(name.trim());};
+  return React.createElement('div',{style:{background:'#0f172a',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'system-ui',color:'#e2e8f0',padding:20}},
+    React.createElement('div',{style:{maxWidth:480,width:'100%'}},
+      React.createElement('div',{style:{textAlign:'center',marginBottom:32}},
+        React.createElement('div',{style:{fontSize:44,marginBottom:10}},'🚀'),
+        React.createElement('div',{style:{fontSize:10,color:'#6366f1',letterSpacing:4,marginBottom:8}},'APEX PROPULSION SYSTEMS'),
+        React.createElement('div',{style:{fontSize:22,fontWeight:800,color:'#f8fafc',lineHeight:1.3,marginBottom:6}},'Responsible AI Operations',React.createElement('br'),'Training Simulator'),
+        React.createElement('div',{style:{fontSize:13,color:'#64748b'}},'Participant Registration')
+      ),
+      React.createElement('div',{style:{background:'#1e293b',borderRadius:14,padding:28,marginBottom:16}},
+        React.createElement('div',{style:{fontSize:11,color:'#6366f1',fontWeight:700,letterSpacing:1,marginBottom:18}},'PLEASE ENTER YOUR NAME TO BEGIN'),
+        React.createElement('div',{style:{marginBottom:22}},
+          React.createElement('label',{style:{display:'block',fontSize:12,color:'#94a3b8',fontWeight:600,marginBottom:6,letterSpacing:1}},'FULL NAME'),
+          React.createElement('input',{value:name,onChange:e=>{setName(e.target.value);setErr('');},placeholder:'e.g. Jane Smith',
+            style:{width:'100%',boxSizing:'border-box',background:'#0f172a',border:'1px solid #334155',borderRadius:8,padding:'11px 14px',color:'#f1f5f9',fontSize:15,outline:'none'},
+            onKeyDown:e=>e.key==='Enter'&&go()})
+        ),
+        err&&React.createElement('div',{style:{background:'rgba(239,68,68,0.1)',border:'1px solid #ef4444',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#fca5a5',marginBottom:16}},err),
+        React.createElement('button',{onClick:go,style:{width:'100%',padding:14,background:valid?'linear-gradient(135deg,#6366f1,#8b5cf6)':'#1e293b',border:valid?'none':'1px solid #334155',borderRadius:10,color:valid?'white':'#475569',fontWeight:800,fontSize:14,cursor:valid?'pointer':'not-allowed',letterSpacing:1}},'BEGIN SIMULATION →')
+      ),
+      React.createElement('div',{style:{fontSize:11,color:'#334155',textAlign:'center'}},'Your name will appear on your completion certificate if you achieve a passing score.')
+    )
+  );
+}
+
+function Intro({onStart}) {
+  return React.createElement('div',{style:{background:'#0f172a',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'system-ui',color:'#e2e8f0',padding:20}},
+    React.createElement('div',{style:{maxWidth:760}},
+      React.createElement('div',{style:{textAlign:'center',marginBottom:32}},
+        React.createElement('div',{style:{fontSize:50,marginBottom:10}},'🚀'),
+        React.createElement('div',{style:{fontSize:10,color:'#6366f1',letterSpacing:4,marginBottom:8}},'APEX PROPULSION SYSTEMS'),
+        React.createElement('div',{style:{fontSize:28,fontWeight:800,color:'#f8fafc',lineHeight:1.2,marginBottom:8}},'Responsible AI Operations',React.createElement('br'),'Training Simulator'),
+        React.createElement('div',{style:{fontSize:14,color:'#94a3b8'}},'CTO Office · Manager Training Program · v5.0')
+      ),
+      React.createElement('div',{style:{background:'#1e293b',borderRadius:14,padding:22,marginBottom:18,borderLeft:'4px solid #6366f1'}},
+        React.createElement('div',{style:{fontSize:11,color:'#6366f1',fontWeight:700,marginBottom:8,letterSpacing:1}},'YOUR MISSION'),
+        React.createElement('p',{style:{margin:'0 0 10px',color:'#e2e8f0',lineHeight:1.75,fontSize:15}},'As a manager at Apex Propulsion Systems, each run draws ',React.createElement('strong',null,'15 scenarios at random from a pool of 23'),' spanning procurement, fabrication, QC, assembly, compliance, finance, HR, and product management. For each situation, choose from four approaches.'),
+        React.createElement('p',{style:{margin:0,color:'#e2e8f0',lineHeight:1.75,fontSize:15}},'Every choice carries real cost, environmental, and workforce consequences. You won\'t know your results until the final debrief. Develop the judgment to make ',React.createElement('strong',null,'responsible, defensible decisions.'))
+      ),
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:18}},
+        ...[{icon:'🤖',label:'AI Agent',desc:'Powerful for complex pattern recognition and high-volume analysis. Expensive in tokens, energy, and water. Job impact: −2.',color:'#818cf8'},
+           {icon:'⚡',label:'Basic Automation',desc:'Fast and reliable for rule-based repetitive tasks. Cannot handle ambiguity or judgment. Job impact: −1.',color:'#34d399'},
+           {icon:'🧠',label:'Augmented Human',desc:'AI handles data analysis; human critically evaluates and decides. Best of both worlds when appropriate. Job impact: +1.',color:'#f472b6'},
+           {icon:'👤',label:'Human Worker',desc:'Essential for safety, ethics, legal accountability, and relationships. Often the only right choice. Job impact: +3.',color:'#fbbf24'}
+        ].map(o=>React.createElement('div',{key:o.label,style:{background:'#1e293b',borderRadius:12,padding:16,borderLeft:`3px solid ${o.color}`,display:'flex',gap:12}},
+          React.createElement('span',{style:{fontSize:24,flexShrink:0}},o.icon),
+          React.createElement('div',null,
+            React.createElement('div',{style:{fontWeight:700,color:o.color,marginBottom:5,fontSize:14}},o.label),
+            React.createElement('div',{style:{fontSize:12,color:'#94a3b8',lineHeight:1.55}},o.desc)
+          )
+        ))
+      ),
+      React.createElement('div',{style:{textAlign:'center',fontSize:12,color:'#475569',marginBottom:14}},'15 of 23 possible scenarios per run · Procurement · QC · Production · Engineering · Compliance · Finance · HR · Product Management'),
+      React.createElement('button',{onClick:onStart,style:{width:'100%',padding:16,background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:12,color:'white',fontWeight:800,fontSize:15,cursor:'pointer',letterSpacing:2}},'BEGIN →')
+    )
+  );
+}
+
+function App() {
+  const [phase,setPhase]=useState('intro');
+  const [deck,setDeck]=useState(()=>buildDeck());
+  const [idx,setIdx]=useState(0);
+  const [decisions,setDecisions]=useState([]);
+  const [chosen,setChosen]=useState(null);
+  const [showResult,setShowResult]=useState(false);
+  const [userName,setUserName]=useState('');
+  const handleRestart=()=>{setDeck(buildDeck());setIdx(0);setDecisions([]);setChosen(null);setShowResult(false);setPhase('register');};
+
+  const sc=deck[idx],total=deck.length;
+  const tE=decisions.reduce((s,d)=>s+d.costs.energy,0);
+  const tW=decisions.reduce((s,d)=>s+d.costs.water,0);
+  const tJ=decisions.reduce((s,d)=>s+d.costs.job,0);
+  const eventIdxs=decisions.map((d,i)=>d.isEvent?i:-1).filter(i=>i>=0);
+
+  const choose=opt=>{
+    setChosen(opt);setShowResult(true);
+    setDecisions(p=>[...p,{sc:sc.title,cat:sc.category,choice:opt,rec:sc.rec,ok:opt===sc.rec,costs:sc.costs[opt],optCosts:sc.costs[sc.rec],insight:sc.insight,recurring:sc.recurring||false,isEvent:sc.isEvent||false}]);
+  };
+  const next=()=>{setChosen(null);setShowResult(false);if(idx+1>=total)setPhase('debrief');else setIdx(idx+1);};
+
+  if(phase==='intro') return React.createElement(Intro,{onStart:()=>setPhase('register')});
+  if(phase==='register') return React.createElement(Register,{onSubmit:n=>{setUserName(n);setPhase('sim');}});
+  if(phase==='debrief') return React.createElement(Debrief,{decisions,onRestart:handleRestart,userName});
+
+  const isEvent=sc.isEvent||false;
+  const h=(s,c)=>React.createElement('div',{style:s},c);
+
+  return h({background:'#0f172a',minHeight:'100vh',fontFamily:'system-ui,sans-serif',color:'#e2e8f0'},[
+    // Header
+    h({background:'#1e293b',borderBottom:'1px solid #334155',padding:'10px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',key:'hdr'},[
+      h({display:'flex',alignItems:'center',gap:10,key:'l'},[
+        React.createElement('span',{style:{fontSize:18},key:'r'},'🚀'),
+        h({key:'t'},[
+          h({fontSize:10,color:'#94a3b8',letterSpacing:2,key:'a'},'APEX PROPULSION SYSTEMS — CTO TRAINING SIMULATOR'),
+          h({fontSize:13,fontWeight:700,color:'#f1f5f9',key:'b'},'Responsible AI Operations Training Simulator')
+        ])
+      ]),
+      h({display:'flex',gap:18,key:'r'},[
+        ...([['Scenario',`${idx+1}/${total}`,'#e2e8f0'],['Energy',`${tE.toFixed(2)} kWh`,'#fbbf24'],['Water',`${tW.toFixed(0)} L`,'#60a5fa'],['Job Score',`${tJ>=0?'+':''}${tJ}`,tJ>=0?'#34d399':'#f87171']]).map(([l,v,c])=>
+          h({textAlign:'right',key:l},[h({fontSize:10,color:'#64748b',key:'l'},l),h({fontSize:13,fontWeight:700,color:c,key:'v'},v)])
+        )
+      ])
+    ]),
+    // Progress bar
+    h({height:3,background:'#1e293b',key:'pb'},h({height:3,background:isEvent?'linear-gradient(90deg,#f97316,#ef4444)':'linear-gradient(90deg,#6366f1,#10b981)',width:`${((idx+1)/total)*100}%`,transition:'width 0.5s'})),
+    // Event banner
+    isEvent&&h({background:'linear-gradient(90deg,rgba(249,115,22,0.15),rgba(239,68,68,0.08))',borderBottom:'1px solid #f97316',padding:'8px 24px',display:'flex',alignItems:'center',gap:12,key:'eb'},[
+      React.createElement('span',{style:{fontSize:20},key:'i'},'⚠️'),
+      h({key:'t'},[
+        React.createElement('span',{style:{color:'#f97316',fontWeight:800,fontSize:11,letterSpacing:2},key:'a'},'REAL-WORLD DISRUPTION EVENT'),
+        React.createElement('span',{style:{color:'#94a3b8',fontSize:11,marginLeft:16},key:'b'},'Urgency: ',React.createElement('span',{style:{color:'#fbbf24',fontWeight:700}},sc.urgency),' · Timeframe: ',React.createElement('span',{style:{color:'#fbbf24',fontWeight:700}},sc.timeframe))
+      ])
+    ]),
+    // Body
+    h({padding:'20px',maxWidth:1200,margin:'0 auto',display:'grid',gridTemplateColumns:'1fr 290px',gap:20,key:'body'},[
+      // Main
+      h({key:'main'},[
+        h({marginBottom:14,key:'ttl'},[
+          h({display:'flex',gap:8,marginBottom:6,flexWrap:'wrap',key:'badges'},[
+            React.createElement('span',{style:{background:isEvent?'rgba(249,115,22,0.2)':'#334155',border:isEvent?'1px solid #f97316':'none',padding:'3px 10px',borderRadius:20,fontSize:10,color:isEvent?'#f97316':'#94a3b8',letterSpacing:1},key:'c'},`${sc.icon} ${sc.category.toUpperCase()}`),
+            sc.recurring&&React.createElement('span',{style:{background:'rgba(251,191,36,0.12)',border:'1px solid #fbbf24',padding:'2px 8px',borderRadius:20,fontSize:9,color:'#fbbf24',letterSpacing:1},key:'r'},'🔄 RECURRING')
+          ]),
+          h({fontSize:22,fontWeight:800,color:isEvent?'#fed7aa':'#f8fafc',lineHeight:1.3,key:'t'},sc.title)
+        ]),
+        h({background:isEvent?'rgba(249,115,22,0.06)':'#1e293b',border:isEvent?'1px solid rgba(249,115,22,0.3)':'none',borderRadius:12,padding:20,marginBottom:14,key:'desc'},[
+          React.createElement('p',{style:{margin:'0 0 16px',color:'#e2e8f0',lineHeight:1.75,fontSize:15},key:'p'},sc.desc),
+          h({display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14,key:'meta'},[
+            ...([['Complexity',sc.complexity],['Data Volume',sc.volume],['Safety Impact',sc.safety]]).map(([l,v])=>
+              h({background:'#0f172a',borderRadius:8,padding:'9px 14px',key:l},[
+                h({fontSize:9,color:'#64748b',letterSpacing:1,marginBottom:3,key:'l'},l.toUpperCase()),
+                h({fontSize:13,color:'#e2e8f0',fontWeight:500,key:'v'},v)
+              ])
+            )
+          ]),
+          h({padding:'12px 16px',background:'#0f172a',borderRadius:8,borderLeft:`3px solid ${isEvent?'#f97316':'#475569'}`,fontSize:13,color:'#cbd5e1',fontStyle:'italic',lineHeight:1.65,key:'ctx'},sc.context)
+        ]),
+        !showResult&&h({key:'choices'},[
+          h({fontSize:11,color:'#94a3b8',marginBottom:12,fontWeight:700,letterSpacing:1,key:'lbl'},'SELECT YOUR APPROACH:'),
+          h({display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,key:'grid'},
+            OKEYS.map(k=>{const o=OPTS[k];return React.createElement('button',{key:k,onClick:()=>choose(k),
+              style:{background:'#1e293b',border:'2px solid #334155',borderRadius:12,padding:'18px 14px',cursor:'pointer',color:'#e2e8f0',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:7,transition:'all 0.2s'},
+              onMouseOver:e=>{e.currentTarget.style.borderColor=o.color;e.currentTarget.style.transform='translateY(-2px)';},
+              onMouseOut:e=>{e.currentTarget.style.borderColor='#334155';e.currentTarget.style.transform='translateY(0)';}},
+              React.createElement('span',{style:{fontSize:28}},o.icon),
+              React.createElement('span',{style:{fontWeight:700,fontSize:14,color:o.color}},o.label),
+              React.createElement('span',{style:{fontSize:10,color:'#475569',lineHeight:1.4}},k==='augmented'?'AI analysis + human critical review':'Click to select')
+            );})
+          )
+        ]),
+        showResult&&h({key:'result'},[
+          h({background:'rgba(99,102,241,0.12)',border:'1px solid #6366f1',borderRadius:10,padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:12,key:'chose'},[
+            React.createElement('span',{style:{fontSize:22},key:'i'},'📊'),
+            h({key:'t'},[
+              h({fontWeight:700,color:'#a5b4fc',fontSize:14,key:'a'},`You chose: ${OPTS[chosen].icon} ${OPTS[chosen].label}`),
+              h({fontSize:12,color:'#94a3b8',marginTop:3,key:'b'},'Review the cost breakdown below. Optimal choices revealed in the final debrief.')
+            ])
+          ]),
+          h({background:'#1e293b',border:'1px solid #334155',borderRadius:10,padding:16,marginBottom:14,borderLeft:`4px solid ${isEvent?'#f97316':'#6366f1'}`,key:'ins'},[
+            h({fontSize:10,color:isEvent?'#f97316':'#6366f1',fontWeight:700,marginBottom:8,letterSpacing:1,key:'l'},'TRAINING INSIGHT'),
+            React.createElement('p',{style:{margin:0,color:'#e2e8f0',lineHeight:1.7,fontSize:14},key:'p'},sc.insight)
+          ]),
+          h({background:'#1e293b',borderRadius:12,overflow:'hidden',marginBottom:14,key:'tbl'},[
+            h({display:'grid',gridTemplateColumns:'1.1fr repeat(4,1fr)',background:'#0f172a',padding:'9px 10px',fontSize:10,fontWeight:700,color:'#64748b',letterSpacing:0.5,key:'hdr'},[
+              React.createElement('span',{key:'m'},'METRIC'),
+              ...OKEYS.map(o=>React.createElement('span',{key:o,style:{textAlign:'center',color:OPTS[o].color}},`${OPTS[o].icon} ${o==='augmented'?'Aug.':OPTS[o].label.split(' ')[0]}`))
+            ]),
+            ...MKEYS.map(k=>{const best=getBest(sc,k);return h({display:'grid',gridTemplateColumns:'1.1fr repeat(4,1fr)',padding:'6px 10px',borderTop:'1px solid #0f172a',fontSize:11,key:k},[
+              React.createElement('span',{style:{color:'#94a3b8',fontSize:10},key:'l'},({token:'Token Cost ($)',energy:'Energy (kWh)',water:'Water (L)',capital:'Capital ($)',labor:'Labor ($)',speed:'Speed',err:'Error %',job:'Job Impact',qual:'Quality %'})[k]),
+              ...OKEYS.map(opt=>{const isC=opt===chosen,isB=opt===best;return React.createElement('span',{key:opt,style:{textAlign:'center',fontWeight:isC?700:400,color:isB?'#34d399':isC?'#f1f5f9':'#4b5563',background:isC?'rgba(99,102,241,0.18)':'transparent',borderRadius:3,padding:'1px 2px',fontSize:11}},fmt(k,sc.costs[opt][k])+(isB?' ★':''));})
+            ])})
+          ]),
+          React.createElement('button',{onClick:next,style:{width:'100%',padding:14,background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:10,color:'white',fontWeight:800,fontSize:14,cursor:'pointer',letterSpacing:1},key:'nxt'},idx+1<total?'NEXT SCENARIO →':'VIEW FULL PERFORMANCE DEBRIEF →')
+        ])
+      ]),
+      // Sidebar
+      h({key:'side'},[
+        h({background:'#1e293b',borderRadius:12,padding:14,marginBottom:14,key:'trend'},[
+          h({fontSize:10,color:'#94a3b8',fontWeight:700,letterSpacing:2,marginBottom:10,key:'l'},'COST TRENDS'),
+          React.createElement(MiniTrend,{decisions,eventIdxs,key:'mt'})
+        ]),
+        h({background:'#1e293b',borderRadius:12,padding:14,marginBottom:14,key:'totals'},[
+          h({fontSize:10,color:'#94a3b8',fontWeight:700,letterSpacing:2,marginBottom:12,key:'l'},'RUNNING TOTALS'),
+          ...[['💰','Token Spend',`$${decisions.reduce((s,d)=>s+d.costs.token,0).toFixed(2)}`,'#818cf8'],['⚡','Energy',`${tE.toFixed(3)} kWh`,'#fbbf24'],['💧','Water',`${tW.toFixed(1)} L`,'#60a5fa'],['💼','Labor Cost',`$${decisions.reduce((s,d)=>s+d.costs.labor,0).toFixed(0)}`,'#94a3b8'],['👥','Job Impact',`${tJ>=0?'+':''}${tJ}`,tJ>=0?'#34d399':'#f87171']].map(([i,l,v,c])=>
+            h({display:'flex',justifyContent:'space-between',marginBottom:9,fontSize:12,key:l},[
+              React.createElement('span',{style:{color:'#94a3b8'},key:'l'},`${i} ${l}`),
+              React.createElement('span',{style:{color:c,fontWeight:700},key:'v'},v)
+            ])
+          )
+        ]),
+        decisions.length>0&&h({background:'#1e293b',borderRadius:12,padding:14,maxHeight:240,overflowY:'auto',key:'log'},[
+          h({fontSize:10,color:'#94a3b8',fontWeight:700,letterSpacing:2,marginBottom:10,key:'l'},'DECISION LOG'),
+          ...[...decisions].reverse().map((d,i)=>h({borderBottom:'1px solid #334155',paddingBottom:8,marginBottom:8,key:i},[
+            d.isEvent&&h({fontSize:9,color:'#f97316',fontWeight:700,marginBottom:3,letterSpacing:1,key:'ev'},'⚠️ DISRUPTION EVENT'),
+            h({fontSize:11,color:OPTS[d.choice].color,fontWeight:600,key:'c'},`${OPTS[d.choice].icon} ${OPTS[d.choice].label}`),
+            h({fontSize:10,color:'#475569',marginTop:2,key:'t'},d.sc.length>40?d.sc.substring(0,40)+'…':d.sc),
+            d.recurring&&(d.choice==='ai'||d.choice==='automation')&&h({fontSize:9,color:'#fbbf24',marginTop:2,key:'r'},'🔄 Recurring costs accumulating')
+          ]))
+        ])
+      ])
+    ])
+  ]);
+}
+
+function Debrief({decisions,onRestart,userName}) {
+  const n=decisions.length,ok=decisions.filter(d=>d.ok).length,score=Math.round((ok/n)*100);
+  const evOk=decisions.filter(d=>d.isEvent&&d.ok).length,evN=decisions.filter(d=>d.isEvent).length;
+  const tToken=decisions.reduce((s,d)=>s+d.costs.token,0);
+  const tEnergy=decisions.reduce((s,d)=>s+d.costs.energy,0);
+  const tWater=decisions.reduce((s,d)=>s+d.costs.water,0);
+  const tJob=decisions.reduce((s,d)=>s+d.costs.job,0);
+  const avgQual=decisions.reduce((s,d)=>s+d.costs.qual,0)/n;
+  const optToken=decisions.reduce((s,d)=>s+d.optCosts.token,0);
+  const optEnergy=decisions.reduce((s,d)=>s+d.optCosts.energy,0);
+  const optWater=decisions.reduce((s,d)=>s+d.optCosts.water,0);
+  const aiN=decisions.filter(d=>d.choice==='ai').length;
+  const autoN=decisions.filter(d=>d.choice==='automation').length;
+  const augN=decisions.filter(d=>d.choice==='augmented').length;
+  const humanN=decisions.filter(d=>d.choice==='human').length;
+  const cats={};
+  decisions.forEach(d=>{const cat=d.isEvent?'Disruption Events':d.cat;if(!cats[cat])cats[cat]={t:0,ok:0};cats[cat].t++;if(d.ok)cats[cat].ok++;});
+  const grade=score>=87?{g:'EXPERT',c:'#34d399',sub:'Mastery-level judgment across operations and disruptions.'}
+    :score>=73?{g:'PROFICIENT',c:'#fbbf24',sub:'Solid framework grasp with a few areas to sharpen.'}
+    :score>=53?{g:'DEVELOPING',c:'#f97316',sub:'Basics understood but one approach was over-applied.'}
+    :{g:'NEEDS IMPROVEMENT',c:'#ef4444',sub:'Significant pattern issues identified. Review the framework.'};
+  const eVals=decisions.map(d=>d.costs.energy),wVals=decisions.map(d=>d.costs.water),tVals=decisions.map(d=>d.costs.token);
+  const eCum=computeCumulative(decisions,'energy'),wCum=computeCumulative(decisions,'water'),tCum=computeCumulative(decisions,'token');
+  const eventIdxs=decisions.map((d,i)=>d.isEvent?i:-1).filter(i=>i>=0);
+  const certDataURL=useMemo(()=>score>=70?generateCertDataURL(score,ok,n,userName):null,[]);
+  const recs=[
+    aiN>5&&{icon:'⚠️',c:'#f59e0b',t:'Over-reliance on AI Agents',b:'You reached for AI too often on tasks where automation is faster, cheaper, and equally reliable. Reserve AI for genuinely complex, high-volume analytical problems.'},
+    augN===0&&{icon:'🧠',c:'#f472b6',t:'Augmented Human was never used',b:'Several scenarios are best handled by AI analysis with human review. Ignoring this option means either over-automating or under-leveraging AI where it provides defensible value.'},
+    evOk<evN&&{icon:'⚠️',c:'#f97316',t:'Disruption Event decisions need work',b:`You answered ${evOk} of ${evN} disruption events optimally. Crisis situations often require Augmented Human or Human approaches.`},
+    humanN<2&&{icon:'👥',c:'#60a5fa',t:'Human judgment was under-deployed',b:'For flight-critical inspection, ITAR compliance, worker safety incidents, and high-stakes go/no-go decisions — humans are non-negotiable.'},
+    autoN<4&&{icon:'⚡',c:'#34d399',t:'Basic automation was under-used',b:'EOQ calculations, Kanban updates, inventory alerts, and invoice matching require repeatability, not intelligence.'},
+    tJob<0&&{icon:'👷',c:'#fbbf24',t:'Net negative workforce impact',b:`Your decisions produced a cumulative job impact of ${tJob}. Responsible AI deployment means planning actively for workforce transitions.`},
+    score>=87&&{icon:'🏆',c:'#34d399',t:'Expert-level decision-making',b:'You correctly matched tasks to approaches that add genuine value and respected human oversight requirements throughout. Well done.'}
+  ].filter(Boolean);
+
+  return React.createElement('div',{style:{background:'#0f172a',minHeight:'100vh',fontFamily:'system-ui',color:'#e2e8f0',padding:'28px 20px'}},
+    React.createElement('div',{style:{maxWidth:1020,margin:'0 auto'}},
+      // Score header
+      React.createElement('div',{style:{textAlign:'center',marginBottom:28}},
+        React.createElement('div',{style:{fontSize:10,color:'#6366f1',letterSpacing:4,marginBottom:8}},'SIMULATION COMPLETE — PERFORMANCE DEBRIEF'),
+        React.createElement('div',{style:{fontSize:24,fontWeight:800,color:'#f8fafc',marginBottom:8}},'Apex Propulsion Systems'),
+        React.createElement('div',{style:{fontSize:60,fontWeight:900,color:grade.c,lineHeight:1,marginBottom:4}},`${score}%`),
+        React.createElement('div',{style:{fontSize:15,color:grade.c,fontWeight:700,letterSpacing:3,marginBottom:6}},grade.g),
+        React.createElement('div',{style:{fontSize:13,color:'#94a3b8',marginBottom:3}},grade.sub),
+        React.createElement('div',{style:{fontSize:12,color:'#64748b'}},`${ok} of ${n} optimal · ${evOk}/${evN} disruption events correct`)
+      ),
+      // Summary cards
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12,marginBottom:20}},
+        ...[{icon:'💰',l:'Token Spend',v:`$${tToken.toFixed(2)}`,s:`opt: $${optToken.toFixed(2)}`,c:'#818cf8'},
+           {icon:'⚡',l:'Energy Used',v:`${tEnergy.toFixed(2)} kWh`,s:`opt: ${optEnergy.toFixed(2)}`,c:'#fbbf24'},
+           {icon:'💧',l:'Water Impact',v:`${tWater.toFixed(0)} L`,s:`opt: ${optWater.toFixed(0)} L`,c:'#60a5fa'},
+           {icon:'🎯',l:'Avg Quality',v:`${avgQual.toFixed(0)}%`,s:'',c:'#34d399'},
+           {icon:'👥',l:'Job Impact',v:`${tJob>=0?'+':''}${tJob}`,s:'',c:tJob>=0?'#34d399':'#ef4444'}
+        ].map(card=>React.createElement('div',{key:card.l,style:{background:'#1e293b',borderRadius:10,padding:14,borderTop:`3px solid ${card.c}`,textAlign:'center'}},
+          React.createElement('div',{style:{fontSize:20,marginBottom:4}},card.icon),
+          React.createElement('div',{style:{fontSize:10,color:'#64748b',marginBottom:4}},card.l),
+          React.createElement('div',{style:{fontSize:16,fontWeight:700,color:'#f1f5f9'}},card.v),
+          card.s&&React.createElement('div',{style:{fontSize:10,color:'#475569',marginTop:2}},card.s)
+        ))
+      ),
+      // Scatter charts
+      React.createElement('div',{style:{background:'#1e293b',borderRadius:12,padding:18,marginBottom:20}},
+        React.createElement('div',{style:{fontSize:10,color:'#94a3b8',fontWeight:700,letterSpacing:2,marginBottom:4}},`COST TRENDS — ALL ${n} DECISIONS`),
+        React.createElement('div',{style:{fontSize:11,color:'#475569',marginBottom:16}},'Solid = per-decision · Dashed = cumulative · ',React.createElement('span',{style:{color:'#f97316'}},'▲ orange = disruption event')),
+        ...[{label:'Energy (kWh)',vals:eVals,cum:eCum,color:'#fbbf24'},{label:'Water (L)',vals:wVals,cum:wCum,color:'#60a5fa'},{label:'Token Cost ($)',vals:tVals,cum:tCum,color:'#818cf8'}].map(m=>
+          React.createElement('div',{key:m.label,style:{marginBottom:20}},
+            React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:11,color:'#94a3b8',fontWeight:600,marginBottom:6}},
+              React.createElement('span',null,m.label),
+              React.createElement('span',{style:{color:m.color}},`Cumulative: ${m.cum[m.cum.length-1]?.toFixed(m.label.includes('Water')?1:3)}`)
+            ),
+            React.createElement(ScatterFull,{vals:m.vals,cumVals:m.cum,color:m.color,h:88,eventIdxs}),
+            React.createElement('div',{style:{fontSize:9,color:'#334155',marginTop:2}},`↑ Step number (1–${n})`)
+          )
+        )
+      ),
+      // Mix + Category
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}},
+        React.createElement('div',{style:{background:'#1e293b',borderRadius:12,padding:18}},
+          React.createElement('div',{style:{fontSize:10,color:'#94a3b8',fontWeight:700,letterSpacing:2,marginBottom:14}},'YOUR DECISION MIX'),
+          ...[['🤖 AI Agent',aiN,'#818cf8'],['⚡ Basic Automation',autoN,'#34d399'],['🧠 Augmented Human',augN,'#f472b6'],['👤 Human Worker',humanN,'#fbbf24']].map(([l,cnt,col])=>
+            React.createElement('div',{key:l,style:{marginBottom:13}},
+              React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:4}},
+                React.createElement('span',{style:{color:'#e2e8f0'}},l),
+                React.createElement('span',{style:{color:col,fontWeight:700}},`${cnt} (${Math.round(cnt/n*100)}%)`)
+              ),
+              React.createElement('div',{style:{background:'#0f172a',borderRadius:99,height:6}},
+                React.createElement('div',{style:{background:col,width:`${(cnt/n)*100}%`,height:6,borderRadius:99}})
+              )
+            )
+          )
+        ),
+        React.createElement('div',{style:{background:'#1e293b',borderRadius:12,padding:18}},
+          React.createElement('div',{style:{fontSize:10,color:'#94a3b8',fontWeight:700,letterSpacing:2,marginBottom:14}},'PERFORMANCE BY CATEGORY'),
+          ...Object.entries(cats).map(([cat,d])=>{
+            const pct=Math.round(d.ok/d.t*100),col=pct>=80?'#34d399':pct>=50?'#fbbf24':'#ef4444',isEv=cat==='Disruption Events';
+            return React.createElement('div',{key:cat,style:{marginBottom:11}},
+              React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}},
+                React.createElement('span',{style:{color:isEv?'#f97316':'#e2e8f0'}},(isEv?'⚠️ ':'')+cat),
+                React.createElement('span',{style:{color:col,fontWeight:700}},`${d.ok}/${d.t}`)
+              ),
+              React.createElement('div',{style:{background:'#0f172a',borderRadius:99,height:5}},
+                React.createElement('div',{style:{background:col,width:`${pct}%`,height:5,borderRadius:99}})
+              )
+            );
+          })
+        )
+      ),
+      // Decision log
+      React.createElement('div',{style:{background:'#1e293b',borderRadius:12,padding:18,marginBottom:20}},
+        React.createElement('div',{style:{fontSize:10,color:'#94a3b8',fontWeight:700,letterSpacing:2,marginBottom:12}},'FULL DECISION REVIEW'),
+        React.createElement('div',{style:{display:'grid',gridTemplateColumns:'22px 2.2fr 1fr 1fr 96px 40px',gap:6,fontSize:10,color:'#475569',fontWeight:700,letterSpacing:1,marginBottom:8,paddingBottom:8,borderBottom:'1px solid #334155'}},
+          React.createElement('span',null,'#'),React.createElement('span',null,'SCENARIO'),React.createElement('span',null,'YOUR CHOICE'),React.createElement('span',null,'OPTIMAL'),React.createElement('span',null,'OUTCOME'),React.createElement('span',null,'JOB')
+        ),
+        ...decisions.map((d,i)=>React.createElement('div',{key:i,style:{display:'grid',gridTemplateColumns:'22px 2.2fr 1fr 1fr 96px 40px',gap:6,fontSize:12,padding:'7px 0',borderBottom:`1px solid ${d.isEvent?'rgba(249,115,22,0.2)':'#1a2744'}`,alignItems:'center',background:d.isEvent?'rgba(249,115,22,0.04)':'transparent'}},
+          React.createElement('span',{style:{color:d.isEvent?'#f97316':'#475569',fontSize:11,fontWeight:d.isEvent?700:400}},d.isEvent?'⚠':i+1),
+          React.createElement('span',{style:{color:d.isEvent?'#fed7aa':'#e2e8f0',fontSize:12}},d.sc.length>46?d.sc.substring(0,46)+'…':d.sc),
+          React.createElement('span',{style:{color:OPTS[d.choice].color,fontSize:11}},`${OPTS[d.choice].icon} ${d.choice==='augmented'?'Aug. Human':OPTS[d.choice].label}`),
+          React.createElement('span',{style:{color:'#64748b',fontSize:11}},`${OPTS[d.rec].icon} ${d.rec==='augmented'?'Aug. Human':OPTS[d.rec].label}`),
+          React.createElement('span',{style:{color:d.ok?'#34d399':'#ef4444',fontWeight:700,fontSize:10}},d.ok?'✓ OPTIMAL':'✗ SUBOPTIMAL'),
+          React.createElement('span',{style:{color:d.costs.job>=0?'#34d399':'#f87171',fontSize:11,fontWeight:600}},`${d.costs.job>=0?'+':''}${d.costs.job}`)
+        ))
+      ),
+      // Recommendations
+      recs.length>0&&React.createElement('div',{style:{background:'#1e293b',borderRadius:12,padding:18,marginBottom:20}},
+        React.createElement('div',{style:{fontSize:10,color:'#6366f1',fontWeight:700,letterSpacing:2,marginBottom:14}},'PERSONALIZED IMPROVEMENT RECOMMENDATIONS'),
+        React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}},
+          ...recs.map((r,i)=>React.createElement('div',{key:i,style:{background:'#0f172a',borderRadius:10,padding:16,borderLeft:`3px solid ${r.c}`}},
+            React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
+              React.createElement('span',{style:{fontSize:18}},r.icon),
+              React.createElement('span',{style:{fontSize:13,fontWeight:700,color:r.c}},r.t)
+            ),
+            React.createElement('div',{style:{fontSize:13,color:'#cbd5e1',lineHeight:1.65}},r.b)
+          ))
+        )
+      ),
+      // Restart
+      React.createElement('div',{style:{textAlign:'center',marginBottom:20}},
+        React.createElement('button',{onClick:onRestart,style:{padding:'13px 32px',background:'rgba(99,102,241,0.15)',border:'1px solid #6366f1',borderRadius:10,color:'#a5b4fc',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}},`🔄 ${score>=70?'Run Again to Improve Score':'Retake the Simulation'}`),
+        score<70&&React.createElement('div',{style:{marginTop:10,fontSize:13,color:'#64748b'}},'A score of 70% is required to earn a certificate. Review the recommendations above and try again.')
+      ),
+      // Certificate
+      certDataURL&&React.createElement('div',{style:{marginBottom:24}},
+        React.createElement('div',{style:{background:'linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.04))',border:'1px solid #c9a84c',borderRadius:12,padding:'18px 24px',marginBottom:16}},
+          React.createElement('div',{style:{display:'flex',alignItems:'center',gap:12,marginBottom:14}},
+            React.createElement('span',{style:{fontSize:28}},'🏆'),
+            React.createElement('div',null,
+              React.createElement('div',{style:{color:'#e8d48a',fontWeight:700,fontSize:15}},`Congratulations, ${userName}!`),
+              React.createElement('div',{style:{color:'#94a3b8',fontSize:12,marginTop:3}},`You passed with ${score}%. Your certificate is ready below.`)
+            )
+          ),
+          React.createElement('a',{href:certDataURL,download:'apex-propulsion-ai-certificate.png',style:{display:'inline-block',padding:'11px 22px',background:'linear-gradient(135deg,#c9a84c,#e8d48a)',borderRadius:10,color:'#0f172a',fontWeight:800,fontSize:13,textDecoration:'none',letterSpacing:1,whiteSpace:'nowrap'}},'📥 Download Certificate PNG')
+        ),
+        React.createElement('img',{src:certDataURL,alt:'Certificate of Completion',style:{width:'100%',borderRadius:12,border:'2px solid #c9a84c',display:'block'}})
+      ),
+      React.createElement('div',{style:{textAlign:'center',color:'#334155',fontSize:11,marginBottom:8}},'Apex Propulsion Systems · CTO Office · Responsible AI Operations Training Program · Confidential')
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
